@@ -1,0 +1,18 @@
+GPU_IDS: (0,1,2,3)
+
+G:
+  DATASET:
+    ROOT: ''
+
+  TRAIN:
+    LR: 1e-3
+    EPOCH: 500
+    BATCH_SIZE: 32
+    PRINT_FREQ: 20
+    HDIM: 128
+    LAMBDA_MMD: 10.0
+    LAMBDA_IP: 10.0
+    LAMBDA_PAIR: 10.0
+
+MISC:
+  OUTPUT_PATH: './output/'
