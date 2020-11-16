@@ -1,0 +1,27 @@
+GPU: (0,1,2,3)
+
+G:
+  DATASET:
+    ROOT: '/media/HDD8TB/hanyang/face/CASIA_VIS_NIR/'
+
+  TRAIN:
+    LR: 1e-4
+    EPOCH: 750
+    MILESTONE: [250,500]
+    BATCH_SIZE: 32
+    PRINT_FREQ: 20
+    HDIM: 1024
+    LAMBDA_MMD: 1.
+    LAMBDA_IP: 10.
+    LAMBDA_PAIR: 10.
+    LAMBDA_KL: 0.1
+    LAMBDA_REC: 2000.
+
+    REC_LOSS: 'l1'
+    IP_LOSS: 'l2'
+    PAIR_LOSS: 'l1'
+
+    RESUME: False
+
+MISC:
+  OUTPUT_PATH: './output/'

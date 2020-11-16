@@ -44,8 +44,8 @@ class Decoder(nn.Module):
         )
 
         self.net = nn.Sequential(
-            makeLayer(_ResidualBlock, 1, 512, 512),
-            nn.Upsample(scale_factor=2, mode='nearest'),
+            # makeLayer(_ResidualBlock, 1, 512, 512),
+            # nn.Upsample(scale_factor=2, mode='nearest'),
             makeLayer(_ResidualBlock, 1, 512, 512),
             nn.Upsample(scale_factor=2, mode='nearest'),
             makeLayer(_ResidualBlock, 1, 512, 512),
@@ -78,7 +78,7 @@ class _ResidualBlock(nn.Module):
         self.conv1 = nn.Conv2d(in_channels=inc, out_channels=outc, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)
         self.bn1 = nn.InstanceNorm2d(outc, eps=1e-3)
         self.relu1 = nn.LeakyReLU(0.2, inplace=True)
-        self.conv2 = nn.Conv2d(in_channels=inc, out_channels=outc, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)
+        self.conv2 = nn.Conv2d(in_channels=outc, out_channels=outc, kernel_size=3, stride=1, padding=1, groups=groups, bias=False)
         self.bn2 = nn.InstanceNorm2d(outc, eps=1e-3)
         self.relu2 = nn.LeakyReLU(0.2, inplace=True)
 

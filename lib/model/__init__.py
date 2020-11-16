@@ -13,7 +13,7 @@ def defineG(hdim=256):
 
     return encoderNir, encoderVis, netG
 
-def defineIP(isTrain=False):
-    netIP = LightCNN_29Layers_v2(training=isTrain)
+def defineIP(num_classes=80013 ,isTrain=False):
+    netIP = LightCNN_29Layers_v2(num_classes=num_classes, training=isTrain)
     netIP = torch.nn.DataParallel(netIP).cuda()
     return netIP
