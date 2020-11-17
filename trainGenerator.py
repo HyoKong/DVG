@@ -212,7 +212,7 @@ def main():
         # evaluation
         if not os.path.isdir(cfg.G.TEST.IMG_DUMP):
             os.makedirs(cfg.G.TEST.IMG_DUMP)
-        if (epoch + 0) % cfg.G.TEST.FREQ == 0:
+        if (epoch + 1) % cfg.G.TEST.FREQ == 0:
             noise = torch.zeros(cfg.G.TRAIN.BATCH_SIZE, cfg.G.TRAIN.HDIM).normal_(0, 1)
             noise = torch.cat((noise, noise), dim=1)
             noise = noise.cuda()
@@ -226,7 +226,7 @@ def main():
             vutils.save_image(recNir.data, os.path.join(cfg.G.TEST.IMG_DUMP, '{}_epoch_{:03d}_rec_nir.png'.format(cfg.CFG_NAME, epoch)))
             vutils.save_image(recVis.data, os.path.join(cfg.G.TEST.IMG_DUMP, '{}_epoch_{:03d}_rec_vis.png'.format(cfg.CFG_NAME, epoch)))
 
-        if (epoch + 0) % cfg.G.TRAIN.SAVE_EPOCH == 0:
+        if (epoch + 1) % cfg.G.TRAIN.SAVE_EPOCH == 0:
             saveOptimizer(cfg, optimizer, epoch)
             saveModel(cfg, encoderVis, encoderNir, netG, epoch)
 

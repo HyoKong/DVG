@@ -214,7 +214,7 @@ def main():
     # loss
     ceLoss = nn.CrossEntropyLoss().cuda()
 
-    '''
+    ''' 
     Stage I: model pretrained for last fc2 parameters
     '''
     paramsPretrained = []

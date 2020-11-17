@@ -1,6 +1,7 @@
 import os
 import glob2
 
+
 def main():
     protocolsPath = '/media/HDD8TB/hanyang/face/CASIA_VIS_NIR/protocols/'
     datasetRoot = '/media/HDD8TB/hanyang/face/CASIA_VIS_NIR/'
@@ -14,7 +15,10 @@ def main():
     gallery_file_list = sorted(gallery_file_list)[0:-1]
     probe_file_list = sorted(probe_file_list)[0:-1]
 
-    with open('generateList.txt', 'w') as f:
+    idDict = {}  # {oldIdx: newIdx}
+    newIdx = 0
+
+    with open('generateList1.txt', 'w') as f:
         galleryList = []
         for root in gallery_file_list:
             with open(root, 'r') as f1:
@@ -44,21 +48,29 @@ def main():
 
         # probeList = list(set(probeList) - set(excludePath))
         for root in probeList:
-            f.write(writeList(root))
+            _, newIdx, idDict = writeList(root, newIdx, idDict)
+            f.write(writeList(root, newIdx, idDict)[0])
             f.write('\n')
         for root in galleryList:
-            f.write(writeList(root))
+            _, newIdx, idDict = writeList(root, newIdx, idDict)
+            f.write(writeList(root, newIdx, idDict)[0])
             f.write('\n')
     f.close()
 
-def writeList(imgName):
-    _, modality, idx, _= imgName.split('_')[-4:]
+
+def writeList(imgName, newIdx, idDict):
+    _, modality, idx, _ = imgName.split('_')[-4:]
     if modality == 'VIS':
         domain = 1
     else:
         domain = 0
-    idx = int(str(idx))
-    return '{} {} {}'.format(imgName, idx, domain)
+    # idx = int(str(idx))
+    if int(idx) not in idDict.keys():
+        idDict[int(idx)] = newIdx
+        newIdx += 1
+
+    return '{} {} {}'.format(imgName, idDict[int(idx)], domain), newIdx, idDict
+
 
 def revise_name(img_name):
     '''
@@ -79,6 +91,7 @@ def revise_name(img_name):
         if i != len(revise_name) - 1:
             temp += '_'
     return temp
+
 
 if __name__ == "__main__":
     main()

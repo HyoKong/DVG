@@ -1,2 +1,8 @@
 GPU: (0,1,2,3)
 
+TRAIN:
+  BATCH_SIZE: 128
+  LAMBDA_MMD: 0.01
+
+  RESUME: False
+

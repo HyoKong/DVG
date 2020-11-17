@@ -171,4 +171,24 @@ def mmdLoss(fcNir, fcVis):
     lossMmd = F.mse_loss(meanFcNir, meanFcVis)
     return lossMmd
 
+def revise_name(img_name):
+    '''
+    's2\\NIR\\10117\\016.bmp ==> s2\\NIR_128x128\\10117\\016.bmp'
+    :param img_name:
+    :return:
+    '''
+    suffix = img_name.split('.')
+    if suffix[-1] != 'jpg':
+        suffix[-1] = 'jpg'
+
+    img_name = '.'.join(suffix)
+    revise_name = img_name.split('\\')  # img_name: s2\NIR\10117\016.bmp
+    # revise_name[1] += '_128x128'
+    temp = ''
+    for i in range(len(revise_name)):
+        temp = temp + revise_name[i]
+        if i != len(revise_name) - 1:
+            temp += '_'
+    return temp
+
 

@@ -15,8 +15,9 @@ _C.MODEL.NUM_CLASSES = 725
 
 # Dataset
 _C.DATASET = CN()
-_C.DATASET.ROOT = ''
-_C.DATASET.LIST_PATH = './lib/utils/generateList.txt'
+_C.DATASET.ROOT = ''    #
+_C.DATASET.LIST_PATH = './lib/utils/generateList1.txt'
+_C.DATASET.FAKE_NUM = 100000
 
 # Training hyper-parameters
 _C.TRAIN = CN()
