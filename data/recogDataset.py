@@ -42,7 +42,7 @@ class ImageList(data.Dataset):
 
     def __getitem__(self, idx):
         imgPath, label, domain = self.imgList[idx]
-        img = Image.open(os.path.join(self.root, imgPath)).convert('L')
+        img = Image.open(os.path.join(self.root, imgPath)).convert('L').resize((128, 128))
         img = self.transform(img)
         return {'img': img, 'label': label, 'domain': domain}
 
@@ -77,7 +77,7 @@ class SeparateBatchSampler(object):
 
             idxFakeData = random.sample(self.fakeDataIdx, batchSizeFakeData // 2)
             for j in range(batchSizeRealData // 2):
-                idx = randRealDataIdx[i * batchSizeRealData + j % (self.realDataNum // 2)]
+                idx = randRealDataIdx[(i * batchSizeRealData + j) % (self.realDataNum // 2)]
                 batch.append(self.processedIdx[2 * idx])
                 batch.append(self.processedIdx[2 * idx + 1])
 
@@ -88,12 +88,13 @@ class SeparateBatchSampler(object):
 
 
 class SeparateImageList(data.Dataset):
-    def __init__(self, realDataPath, realListPath, fakeDataPath, fakeTotalNum, ratio=0.5):
+    def __init__(self, realDataPath, realListPath, fakeVisPath, fakeNirPath, fakeTotalNum, ratio=0.5):
         '''
 
         :param realDataPath: Image Root
         :param realListPath:
-        :param fakeDataPath:
+        :param fakeVisPath:
+        :param fakeNirPath:
         :param fakeTotalNum:
         :param ratio:
         '''
@@ -104,6 +105,7 @@ class SeparateImageList(data.Dataset):
         ])
 
         # load real nir/vis data.
+        self.fakeTotalNum = fakeTotalNum
         realDataList, realDataIdx = self.listReader(realDataPath, realListPath)
 
         # load fake nir/vis data from noise
@@ -112,17 +114,17 @@ class SeparateImageList(data.Dataset):
         fakeDataIdx = []
         for i in range(0, fakeTotalNum):
             fakeImgName = str(idx[i] + 1) + '.jpg'
-            fakeNirPath = os.path.join(fakeDataPath, 'nir_noise', fakeImgName)
-            fakeVisPath = os.path.join(fakeDataPath, 'vis_noise', fakeImgName)
-            fakeDataList.append((fakeNirPath, -1, 0))
-            fakeDataList.append((fakeVisPath, -1, 1))
+            fakeNirRoot = os.path.join(fakeNirPath, fakeImgName)
+            fakeVisRoot = os.path.join(fakeVisPath, fakeImgName)
+            fakeDataList.append((fakeNirRoot, -1, 0))
+            fakeDataList.append((fakeVisRoot, -1, 1))
             fakeDataIdx.append(i)
 
         self.realDataIdx = realDataIdx
         self.fakeDataIdx = fakeDataIdx
 
-        realDataList.append(fakeDataList)
-        self.dataList = realDataList
+        # realDataList.append(fakeDataList)
+        self.dataList = realDataList + fakeDataList
 
         self.ratio = ratio
 
@@ -130,7 +132,7 @@ class SeparateImageList(data.Dataset):
 
     def __getitem__(self, idx):
         imgPath, label, domain = self.dataList[idx]
-        img = Image.open(imgPath).convert('L')
+        img = Image.open(imgPath).convert('L').resize((128, 128))
 
         img = self.transform(img)
         return {'img': img, 'label': label, 'domain': domain}

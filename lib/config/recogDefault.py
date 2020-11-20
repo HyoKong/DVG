@@ -15,23 +15,29 @@ _C.MODEL.NUM_CLASSES = 725
 
 # Dataset
 _C.DATASET = CN()
-_C.DATASET.ROOT = ''    #
-_C.DATASET.LIST_PATH = './lib/utils/generateList1.txt'
-_C.DATASET.FAKE_NUM = 100000
+_C.DATASET.ROOT = './database/'    #
+_C.DATASET.VAL_LIST_PATH = './lib/utils/generateList1.txt'
+_C.DATASET.LIST_PATH = './lib/utils/generateList2.txt'
+_C.DATASET.FAKE_NUM = 10000
+_C.DATASET.FAKE_VIS_PATH = './genResults/recL2.ipL2.pairL2.Vis'
+_C.DATASET.FAKE_NIR_PATH = './genResults/recL2.ipL2.pairL2.Nir'
+
+
 
 # Training hyper-parameters
 _C.TRAIN = CN()
 _C.TRAIN.LR = 1e-3
 _C.TRAIN.ADJUST_LR_STEP = 5
-_C.TRAIN.MOMENTUM = 0.9
-_C.TRAIN.WEIGHT_DECAY = 1e-4
-_C.TRAIN.BATCH_SIZE = 128
-_C.TRAIN.NUM_WORKERS = 8
+_C.TRAIN.MOMENTUM = 0.5
+_C.TRAIN.WEIGHT_DECAY = 1e-5
+_C.TRAIN.BATCH_SIZE = 4
+_C.TRAIN.NUM_WORKERS = 0
 
-_C.TRAIN.PRE_EPOCH = 6
+_C.TRAIN.PRE_EPOCH = 0
 _C.TRAIN.EPOCH = 15
 
 _C.TRAIN.LAMBDA_MMD = 0.01
+_C.TRAIN.LAMBDA_CE = 1.
 
 _C.TRAIN.PRINT_FREQ = 20
 _C.TRAIN.SAVE_EPOCH = 1

@@ -130,7 +130,7 @@ def accuracy(output, target, topk=(1,)):
 
 
 def saveRecogModel(cfg, model, epoch, prefix):
-    state = {'epoch': epoch, 'model': model}
+    state = {'epoch': epoch, 'state_dict': model.state_dict()}
     modelPath = os.path.join(cfg.MISC.OUTPUT_PATH, 'modelDump', '{}_{}_epoch_{:0>4d}.pth'.format(prefix, cfg.CFG_NAME, epoch))
     if not os.path.exists(cfg.MISC.OUTPUT_PATH):
         os.makedirs(cfg.MISC.OUTPUT_PATH)
@@ -151,8 +151,8 @@ def saveRecogOptimizer(cfg, optimizer, epoch, prefix):
     :param prefix:
     :return:
     '''
-    ckptPath = os.path.join(cfg.MISC.OUTPUT_PATH, 'modelDump', '{}_{}_epoch_{:0>4d}'.format(prefix, cfg.CFG_NAME, epoch))
-    state = {'optim': optimizer}
+    ckptPath = os.path.join(cfg.MISC.OUTPUT_PATH, 'modelDump', '{}_{}_epoch_{:0>4d}.pth'.format(prefix, cfg.CFG_NAME, epoch))
+    state = {'optim': optimizer.state_dict()}
     torch.save(state, ckptPath)
     print('Save recognition optimizer to {}'.format(ckptPath))
 

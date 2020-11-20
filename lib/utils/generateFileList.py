@@ -3,8 +3,8 @@ import glob2
 
 
 def main():
-    protocolsPath = '/media/HDD8TB/hanyang/face/CASIA_VIS_NIR/protocols/'
-    datasetRoot = '/media/HDD8TB/hanyang/face/CASIA_VIS_NIR/'
+    protocolsPath = '/data/konghanyang/face/CASIA_VIS_NIR/protocols/'
+    datasetRoot = '/data/konghanyang/face/CASIA_VIS_NIR/'
 
     gallery_file_list = 'vis_gallery_*.txt'
     probe_file_list = 'nir_probe_*.txt'
@@ -18,7 +18,7 @@ def main():
     idDict = {}  # {oldIdx: newIdx}
     newIdx = 0
 
-    with open('generateList1.txt', 'w') as f:
+    with open('generateList2.txt', 'w') as f:
         galleryList = []
         for root in gallery_file_list:
             with open(root, 'r') as f1:
@@ -47,13 +47,21 @@ def main():
         #         excludePath.append(root)
 
         # probeList = list(set(probeList) - set(excludePath))
-        for root in probeList:
-            _, newIdx, idDict = writeList(root, newIdx, idDict)
-            f.write(writeList(root, newIdx, idDict)[0])
+
+        # for root in probeList:
+        #     info, newIdx, idDict = writeList(root, newIdx, idDict)
+        #     f.write(info)
+        #     f.write('\n')
+        # for root in galleryList:
+        #     info, newIdx, idDict = writeList(root, newIdx, idDict)
+        #     f.write(info)
+        #     f.write('\n')
+        for probeRoot, galleryRoot in zip(probeList, galleryList):
+            info, newIdx, idDict = writeList(probeRoot, newIdx, idDict)
+            f.write(info)
             f.write('\n')
-        for root in galleryList:
-            _, newIdx, idDict = writeList(root, newIdx, idDict)
-            f.write(writeList(root, newIdx, idDict)[0])
+            info, newIdx, idDict = writeList(galleryRoot, newIdx, idDict)
+            f.write(info)
             f.write('\n')
     f.close()
 

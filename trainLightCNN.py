@@ -2,6 +2,7 @@ import os
 import time
 import argparse
 import numpy as np
+import _initPaths
 
 import torch
 import torch.nn as nn
@@ -32,6 +33,7 @@ def parseArgs():
     parser.add_argument('--epoch', type=int)
 
     parser.add_argument('--batchSize', type=int)
+    parser.add_argument('--cfg', required=True)
     args = parser.parse_args()
     updateConfig(config, args)
     return config
@@ -88,6 +90,7 @@ def validate(valLoader, model, criterion):
         losses.update(loss.item(), input.size(0))
         top1.update(prec1.item(), input.size(0))
         top5.update(prec5.item(), input.size(0))
+        print(i)
 
     print('\nTest set: Avg loss: {}, Top1: ({}), Top5: ({})\n'.format(losses.avg, top1.avg, top5.avg))
     return top1.avg, top5.avg
@@ -101,6 +104,8 @@ def train(cfg, trainLoader, model, criterion, optimizer, epoch):
     lossesRealCe = AverageMeter()
     lossesRealMmd = AverageMeter()
     lossesFakeMmd = AverageMeter()
+
+    writer = SummaryWriter(logdir=os.path.join(cfg.MISC.OUTPUT_PATH, 'run', '{}'.format(cfg.CFG_NAME)))
 
     model.train()
 
@@ -121,7 +126,7 @@ def train(cfg, trainLoader, model, criterion, optimizer, epoch):
         labelReal = torch.index_select(label, 0, idxReal)
         domainReal = torch.index_select(domain, 0, idxReal)
 
-        lossRealCe = criterion(outputReal, labelReal)
+        lossRealCe = criterion(outputReal, labelReal) * cfg.TRAIN.LAMBDA_CE
 
         # select real data
         idxNirReal = torch.nonzero(domainReal.data != 1)
@@ -132,7 +137,7 @@ def train(cfg, trainLoader, model, criterion, optimizer, epoch):
         idxVisReal = Variable(idxVisReal[:, 0])
         fcVisReal = torch.index_select(fcReal, 0, idxVisReal)
 
-        lossRealMmd = mmdLoss(fcVisReal, fcNirReal)
+        lossRealMmd = cfg.TRAIN.LAMBDA_MMD * mmdLoss(fcVisReal, fcNirReal)
 
         # select fake data
         idxFake = torch.nonzero(label.data == -1)
@@ -150,12 +155,12 @@ def train(cfg, trainLoader, model, criterion, optimizer, epoch):
         idxVisFake = Variable(idxVisFake[:, 0])
         fcVisFake = torch.index_select(fcFake, 0, idxVisFake)
 
-        lossFakeMmd = mmdLoss(fcNirFake, fcVisFake)
+        lossFakeMmd = cfg.TRAIN.LAMBDA_MMD * mmdLoss(fcNirFake, fcVisFake)
 
-        lossHFR = lossRealCe + cfg.TRAIN.LAMBDA_MMD * (lossRealMmd + lossFakeMmd)
+        lossHFR = lossRealCe + lossRealMmd + lossFakeMmd
         optimizer.zero_grad()
         # TODO(hanyang): need to retain_graph=True??
-        lossHFR.backward()
+        lossHFR.backward(retain_graph=True)
         optimizer.step()
 
         # measure accuracy and record loss
@@ -167,9 +172,15 @@ def train(cfg, trainLoader, model, criterion, optimizer, epoch):
         top1.update(prec1.item(), outputReal.size(0))
         top5.update(prec5.item(), outputReal.size(0))
 
+        # summary writer
+        # writer.add_scalar('loss/cross_entropy', lossesRealCe.avg, epoch)
+        # writer.add_scalar('loss/real_mmd', lossesRealMmd.avg, epoch)
+        # writer.add_scalar('loss/fake_mmd', lossesFakeMmd.avg, epoch)
+
         if i % cfg.TRAIN.PRINT_FREQ == 0:
+        # if True:
             info = '===> Epoch [{:0>3d}][{:3d}/{:3d}] | '.format(epoch, i, len(trainLoader))
-            info += 'Loss: real ce: {:4.3f} ({:4.3f}) real mmd: {:4.3f} ({:4.3f}) fake mmd: {:4.3f} ({:4.3f}) | '.format(
+            info += 'Loss: real ce: {:4.6f} ({:4.6f}) real mmd: {:4.6f} ({:4.6f}) fake mmd: {:4.6f} ({:4.6f}) | '.format(
                 lossesRealCe.val, lossesRealCe.avg, lossesRealMmd.val, lossesRealMmd.avg, lossesFakeMmd.val, lossesFakeMmd.avg
             )
             info += 'Prec@1 : {:4.3f} ({:4.3f}) Prec@5 : {:4.3f} ({:4.3f})'.format(top1.val, top1.avg, top5.val, top5.avg)
@@ -181,20 +192,24 @@ def main():
     cfg = parseArgs()
 
     # load pre-trained lightcnn model.
-    model = LightCNN_29Layers_v2(num_classes=cfg.MODEL.NUM_CLASSES)
+    model = LightCNN_29Layers_v2(num_classes=cfg.MODEL.NUM_CLASSES, training=True)
+    model = torch.nn.DataParallel(model).cuda()
     print('==> Load pre-trained lightcnn model from {}'.format(cfg.MODEL.WEIGHT))
     ckpt = torch.load(cfg.MODEL.WEIGHT)
     pretrainedDict = ckpt['state_dict']
     modelDict = model.state_dict()
-    pretrainedDict = {k: v for k, v in pretrainedDict.items() if k in modelDict}
+    pretrainedDict = {k: v for k, v in pretrainedDict.items() if k in modelDict and 'fc2' not in k}
     modelDict.update(pretrainedDict)
     model.load_state_dict(modelDict)
 
+
     # dataset
-    imageDataset = SeparateImageList(cfg.DATASET.ROOT, realListPath=cfg.DATASET.TRAIN_LIST, fakeDataPath=cfg.DATASET.FAKE_PATH,
+    imageDataset = SeparateImageList(cfg.DATASET.ROOT, realListPath=cfg.DATASET.LIST_PATH,
+                                     fakeVisPath=cfg.DATASET.FAKE_VIS_PATH,
+                                     fakeNirPath=cfg.DATASET.FAKE_NIR_PATH,
                                      fakeTotalNum=cfg.DATASET.FAKE_NUM)
     trainRealIdx, trainFakeIdx = imageDataset.getIdx()
-    batchSampler = SeparateBatchSampler(realDataIdx=trainRealIdx, fakeDataIdx=trainFakeIdx, batchSize=cfg.TRAIN.BATCH_SIZE, ratio=0.5)
+    batchSampler = SeparateBatchSampler(realDataIdx=trainRealIdx, fakeDataIdx=trainFakeIdx, batchSize=cfg.TRAIN.BATCH_SIZE * int(len(cfg.GPU)), ratio=0.5)
 
     # real and fake(generated) training data.
     trainLoader = torch.utils.data.DataLoader(
@@ -206,8 +221,8 @@ def main():
     # real training data.
     # ImageList: dataloader of the real dataset.
     valLoader = torch.utils.data.DataLoader(
-        ImageList(root=cfg.DATASET.ROOT, fileListPath=cfg.DATASET.LIST_PATH),
-        batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=False,
+        ImageList(root=cfg.DATASET.ROOT, fileListPath=cfg.DATASET.VAL_LIST_PATH),
+        batch_size=cfg.TRAIN.BATCH_SIZE* int(len(cfg.GPU)), shuffle=True,
         num_workers=cfg.TRAIN.NUM_WORKERS, pin_memory=True
     )
 
@@ -219,15 +234,15 @@ def main():
     '''
     paramsPretrained = []
     for name, value in model.named_parameters():
-        if 'fc2_' in name:
+        if 'fc2' in name:
             paramsPretrained += [{'params': value, 'lr': 10 * cfg.TRAIN.LR}]
 
     optimPretrained = torch.optim.SGD(paramsPretrained, cfg.TRAIN.LR, momentum=cfg.TRAIN.MOMENTUM, weight_decay=cfg.TRAIN.WEIGHT_DECAY)
 
     for epoch in range(0, cfg.TRAIN.PRE_EPOCH):
         preTrain(cfg, valLoader, model, ceLoss, optimPretrained, epoch)
-        saveRecogModel(cfg, model, epoch, prefix='recog_pretrain_')
-        saveRecogOptimizer(cfg, optimPretrained, epoch, prefix='recog_pretrain_')
+        saveRecogModel(cfg, model, epoch, prefix='recog_pretrain_model')
+        saveRecogOptimizer(cfg, optimPretrained, epoch, prefix='recog_pretrain_optim')
 
     '''
     Stage II: model fine tune for the overall network.
@@ -236,17 +251,15 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(), cfg.TRAIN.LR, momentum=cfg.TRAIN.MOMENTUM, weight_decay=cfg.TRAIN.WEIGHT_DECAY)
 
     # initial accuracy.
-    prec1, prec5 = validate(valLoader, model, criterion=ceLoss)
+    # prec1, prec5 = validate(valLoader, model, criterion=ceLoss)
 
     for epoch in range(cfg.TRAIN.PRE_EPOCH, cfg.TRAIN.EPOCH):
         if epoch != 0 and epoch % cfg.TRAIN.ADJUST_LR_STEP == 0:
             adjustLearningRate(cfg.TRAIN.LR, cfg.TRAIN.ADJUST_LR_STEP, optimizer, epoch)
         train(cfg, trainLoader=trainLoader, model=model, criterion=ceLoss, optimizer=optimizer, epoch=epoch)
         prec1, prec5 = validate(valLoader, model, ceLoss)
-        saveRecogModel(cfg, model, epoch, prefix='recog')
-        saveRecogOptimizer(cfg, optimizer, epoch, prefix='recog')
-
-
+        saveRecogModel(cfg, model, epoch, prefix='recog_model')
+        saveRecogOptimizer(cfg, optimizer, epoch, prefix='recog_optim')
 
 if __name__ == '__main__':
     main()

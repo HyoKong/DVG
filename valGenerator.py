@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.utils as vutils
+from torchvision.utils import save_image
 from torch.autograd import Variable
 
 from model import defineG, defineIP
@@ -46,8 +47,10 @@ def main():
     # encVis.load_state_dict(ckpt['model'])
     # ckpt = torch.load(args.encNirPath)
     # encNir.load_state_dict(ckpt['model'])
-    ckpt = torch.load(args.netGPath)
-    netG.load_state_dict(ckpt['model'])
+    netG = torch.load(args.netGPath)['model']
+    if isinstance(netG, torch.nn.DataParallel):
+        netG = netG.module
+    # netG.load_state_dict(ckpt['model'])
     netG.eval()
 
     num = 0
@@ -60,19 +63,19 @@ def main():
         fake = netG(noise)
 
         nir = fake[:, 0:3, :, :].data.cpu().numpy()
-        vis = fake[:, 4:6, :, :].data.cpu().numpy()
+        vis = fake[:, 3:6, :, :].data.cpu().numpy()
 
         for i in range(nir.shape[0]):
             num += 1
             saveImg = nir[i, :, :, :]
-            saveImg = np.transpose((255 * saveImg).astype('uint8'), (1, 2, 0))
-            output = Image.fromarray(saveImg)
+            saveImg = np.transpose((255 * (saveImg * 0.5 + 0.5)).astype('uint8'), (1, 2, 0))
+            output = Image.fromarray(saveImg).convert('RGB')
             saveName = str(num) + '.jpg'
             output.save(os.path.join(args.outNirPath, saveName))
 
             saveImg = vis[i, :, :, :]
-            saveImg = np.transpose((255 * saveImg).astype('uint8'), (1, 2, 0))
-            output = Image.fromarray(saveImg)
+            saveImg = np.transpose((255 * (saveImg * 0.5 + 0.5)).astype('uint8'), (1, 2, 0))
+            output = Image.fromarray(saveImg).convert('RGB')
             saveName = str(num) + '.jpg'
             output.save(os.path.join(args.outVisPath, saveName))
 
